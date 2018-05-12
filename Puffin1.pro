@@ -6,4 +6,18 @@ CONFIG -= qt
 LIBS += krpc protobuf
 
 SOURCES += \
-        main.cpp
+        main.cpp \
+    DisplayMsg.cpp \
+    DisplayThread.cpp \
+    LaunchThread.cpp \
+    RocketData.cpp \
+    RocketMainThread.cpp \
+    ThreadInterface.cpp
+
+HEADERS += \
+    DisplayMsg.h \
+    DisplayThread.h \
+    LaunchThread.h \
+    RocketData.h \
+    RocketMainThread.h \
+    ThreadInterface.h

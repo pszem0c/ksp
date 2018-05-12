@@ -15,6 +15,9 @@ int main() {
 
         RocketMainThread puffin;
         puffin.setVessel(sc.active_vessel());
+
+
+
         puffin.startThread();
         puffin.waitForJoin();
     } catch (exception& e) {

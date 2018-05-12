@@ -1,26 +1,17 @@
 #include "LaunchThread.h"
 
-// Constructors/Destructors
-//  
-
-LaunchThread::LaunchThread () {
-initAttributes();
+LaunchThread::LaunchThread (krpc::services::SpaceCenter::Vessel _vessel, RocketData* _rocketData) {
+    vessel = _vessel;
+    flight = vessel.flight();
+    rocketData = _rocketData;
 }
 
-LaunchThread::~LaunchThread () { }
+LaunchThread::~LaunchThread () {
 
-//  
-// Methods
-//  
-
-
-// Accessor methods
-//  
-
-
-// Other methods
-//  
-
-void LaunchThread::initAttributes () {
 }
+
+void LaunchThread::internalThreadEntry() {
+
+}
+
 

@@ -1,26 +1,18 @@
 #include "DisplayThread.h"
-
-// Constructors/Destructors
-//  
+#include "DisplayMsg.h"
 
 DisplayThread::DisplayThread () {
-initAttributes();
 }
 
 DisplayThread::~DisplayThread () { }
 
-//  
-// Methods
-//  
-
-
-// Accessor methods
-//  
-
-
-// Other methods
-//  
-
-void DisplayThread::initAttributes () {
+void DisplayThread::sendMsg(int data, int type) {
 }
+
+void DisplayThread::sendMsg(double data, int type) {
+}
+
+void DisplayThread::internalThreadEntry() {
+}
+
 

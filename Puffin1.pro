@@ -3,7 +3,7 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-LIBS += krpc protobuf
+LIBS += -lkrpc -lprotobuf -pthread -lpthread
 
 SOURCES += \
         main.cpp \

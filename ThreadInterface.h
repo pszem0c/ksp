@@ -2,16 +2,25 @@
 #define THREDINTERFACE_H
 
 #include <thread>
+#include <condition_variable>
 
-class ThreadInterface {
+class ThreadInterface {    
+    enum ThreadState {
+        Created,
+        Running,
+        Stopped,
+        Finished,
+    };
+
 private:
     std::thread* thread;
-    bool threadRunning;
-
-    static void* internalThreadEntryFunc (void* thisObj);
+    ThreadState threadState;
+    static void internalThreadEntryFunc (void* thisObj);
 
 protected:
-    virtual void internalThreadEntry () = 0;
+    virtual void internalThreadEntry() = 0;
+    static std::mutex threadFinishedMutex;
+    static std::condition_variable threadFinishedCondition;
 
 public:
     ThreadInterface ();
@@ -20,11 +29,10 @@ public:
     void startThread ();
     void stopThread ();
     bool isRunning ();
+    bool isFinished();
     void detachThread ();
     void waitForJoin ();
-    bool isThreadRunning ();
-
-
 };
 
 #endif // THREDINTERFACE_H
+

@@ -1,26 +1,54 @@
 #include "RocketMainThread.h"
+#include "RocketData.h"
+#include "LaunchThread.h"
+#include <exception>
 
-// Constructors/Destructors
-//  
+#include <iostream>
 
 RocketMainThread::RocketMainThread () {
-initAttributes();
+    rocketData = new RocketData();
 }
 
-RocketMainThread::~RocketMainThread () { }
-
-//  
-// Methods
-//  
-
-
-// Accessor methods
-//  
-
-
-// Other methods
-//  
-
-void RocketMainThread::initAttributes () {
+RocketMainThread::~RocketMainThread () {
+    if (isRunning()) {
+        for(auto thread : activeThreads) {
+            thread->stopThread();
+            thread->waitForJoin();
+        }
+        stopThread();
+    }
+    delete rocketData;
 }
 
+void RocketMainThread::setVessel(krpc::services::SpaceCenter::Vessel _vessel) {
+    vessel = _vessel;
+    flight = vessel.flight(vessel.surface_reference_frame());
+}
+
+krpc::services::SpaceCenter::Vessel RocketMainThread::getVessel() {
+    return vessel;
+}
+
+void RocketMainThread::launchToOrbit(double _orbitAltitude) {
+
+    ThreadInterface* launchThread = new LaunchThread(vessel, rocketData);
+    if (launchThread == nullptr) {
+        throw std::runtime_error("LaunchToOrbit: new error");
+    }
+    activeThreadsMutex.lock();
+    activeThreads.push_back(launchThread);
+    activeThreadsMutex.unlock();
+    launchThread->startThread();
+}
+
+void RocketMainThread::internalThreadEntry() {
+    while(isRunning()) {
+        std::unique_lock<std::mutex> lck(threadFinishedMutex);
+        threadFinishedCondition.wait(lck);
+        for (auto thread: activeThreads) {
+            if (thread->isFinished()) {
+                thread->waitForJoin();
+            }
+        }
+    }
+}

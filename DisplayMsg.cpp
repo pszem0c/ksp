@@ -1,26 +1,19 @@
 #include "DisplayMsg.h"
 
-// Constructors/Destructors
-//  
 
-DisplayMsg::DisplayMsg () {
-initAttributes();
+DisplayMsg::DisplayMsg(void *_data, int _type) {
+    data = _data;
+    type = _type;
 }
 
 DisplayMsg::~DisplayMsg () { }
 
-//  
-// Methods
-//  
-
-
-// Accessor methods
-//  
-
-
-// Other methods
-//  
-
-void DisplayMsg::initAttributes () {
+void *DisplayMsg::getData()     {
+    return data;
 }
+
+int DisplayMsg::getType()     {
+    return type;
+}
+
 

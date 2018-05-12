@@ -1,26 +1,36 @@
 #include "ThreadInterface.h"
 
+std::condition_variable ThreadInterface::threadFinishedCondition;
+std::mutex ThreadInterface::threadFinishedMutex;
+
 ThreadInterface::ThreadInterface () {
-    threadRunning = false;
     thread = nullptr;
+    threadState = ThreadState::Created;
 }
 
 
 void ThreadInterface::internalThreadEntryFunc(void *thisObj) {
     ((ThreadInterface*) thisObj)->internalThreadEntry();
+    std::unique_lock<std::mutex> lck(threadFinishedMutex);
+    ((ThreadInterface*)thisObj)->threadState = ThreadState::Finished;
+    threadFinishedCondition.notify_one();
 }
 
 void ThreadInterface::startThread() {
     thread = new std::thread(internalThreadEntryFunc, this);
-    threadRunning = true;
+    threadState = ThreadState::Running;
 }
 
 void ThreadInterface::stopThread() {
-    threadRunning = false;
+    threadState = ThreadState::Stopped;
 }
 
 bool ThreadInterface::isRunning() {
-    return threadRunning;
+    return (threadState == ThreadState::Running);
+}
+
+bool ThreadInterface::isFinished() {
+    return (threadState == ThreadState::Finished);
 }
 
 void ThreadInterface::detachThread() {
@@ -30,4 +40,3 @@ void ThreadInterface::detachThread() {
 void ThreadInterface::waitForJoin() {
     thread->join();
 }
-

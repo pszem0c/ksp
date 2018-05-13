@@ -6,30 +6,33 @@
 #include <string>
 #include <krpc.hpp>
 #include <krpc/services/space_center.hpp>
-#include <mutex>
-#include <condition_variable>
+#include "StreamQueue.h"
 
 class RocketData;
 
 class LaunchThread : public ThreadInterface {
     enum LaunchState {
+        Idle,
         Countdown,
         StageOne,
         Circularize
     };
 
 private:
+    krpc::services::SpaceCenter*        spaceCenter;
     krpc::services::SpaceCenter::Vessel vessel;
     krpc::services::SpaceCenter::Flight flight;
     RocketData* rocketData;
     LaunchState launchState;
-    std::mutex streamMutex;
-    std::condition_variable streamConditional;
+
+    //stream
+    StreamQueue<double>* altitude;
+    StreamQueue<double>* apoapsis;
+    StreamQueue<float>* dynamicPressure;
 
     void initRocketData();
-
 public:
-    LaunchThread (krpc::services::SpaceCenter::Vessel _vessel, RocketData* _rocketData);
+    LaunchThread (krpc::services::SpaceCenter* _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData* _rocketData);
     virtual ~LaunchThread ();
 
 protected:

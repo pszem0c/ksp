@@ -27,8 +27,8 @@ public:
     }
     ~DisplayThread () {}
 
-    void sendMsg(int data, int type);
-    void sendMsg(double data, int type);
+    //void sendMsg(int data, int type);
+    //void sendMsg(double data, int type);
     void sendMsg(std::string data, int type);
 
     DisplayThread(DisplayThread const&)     = delete;

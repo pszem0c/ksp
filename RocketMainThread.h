@@ -8,6 +8,7 @@ class RocketData;
 
 class RocketMainThread : public ThreadInterface {
 private:
+    krpc::services::SpaceCenter*            spaceCenter;
     krpc::services::SpaceCenter::Vessel     vessel;
     krpc::services::SpaceCenter::Flight     flight;
     RocketData*                             rocketData;
@@ -18,6 +19,7 @@ public:
     RocketMainThread();
     virtual ~RocketMainThread ();
 
+    void setSpaceCenter(krpc::services::SpaceCenter* _spaceCenter);
     void setVessel (krpc::services::SpaceCenter::Vessel _vessel);
     krpc::services::SpaceCenter::Vessel getVessel ();
     void launchToOrbit(double _orbitAltitude);

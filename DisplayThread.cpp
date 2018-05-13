@@ -2,11 +2,11 @@
 #include "DisplayMsg.h"
 #include <iostream>
 
-void DisplayThread::sendMsg(int data, int type) {
-}
+//void DisplayThread::sendMsg(int data, int type) {
+//}
 
-void DisplayThread::sendMsg(double data, int type) {
-}
+//void DisplayThread::sendMsg(double data, int type) {
+//}
 
 void DisplayThread::sendMsg(std::string data, int type) {
     std::string* str = new std::string(data);
@@ -32,14 +32,16 @@ void DisplayThread::internalThreadEntry() {
     while (isRunning()) {
         std::unique_lock<std::mutex> lck(displayMsgQueueMutex);
         msgReceivedCondition.wait(lck);
-        DisplayMsg* msg = displayMsgQueue.front();
-        displayMsgQueue.pop_front();
-        switch (msg->getType()) {
-        case MsgType::String:
-            processStringMsg(msg);
-            break;
-        default:
-            break;
+        while(displayMsgQueue.size()) {
+            DisplayMsg* msg = displayMsgQueue.front();
+            displayMsgQueue.pop_front();
+            switch (msg->getType()) {
+            case MsgType::String:
+                processStringMsg(msg);
+                break;
+            default:
+                break;
+            }
         }
     }
 

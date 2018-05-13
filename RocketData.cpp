@@ -12,7 +12,7 @@ krpc::services::SpaceCenter::Fairing RocketData::getFairing() const {
     return fairing;
 }
 
-void RocketData::setFairing(const krpc::services::SpaceCenter::Fairing &_fairing) {
+void RocketData::setFairing(krpc::services::SpaceCenter::Fairing _fairing) {
     fairing = _fairing;
 }
 

@@ -20,6 +20,10 @@ RocketMainThread::~RocketMainThread () {
     delete rocketData;
 }
 
+void RocketMainThread::setSpaceCenter(krpc::services::SpaceCenter* _spaceCenter) {
+    spaceCenter = _spaceCenter;
+}
+
 void RocketMainThread::setVessel(krpc::services::SpaceCenter::Vessel _vessel) {
     vessel = _vessel;
     flight = vessel.flight(vessel.surface_reference_frame());
@@ -30,11 +34,11 @@ krpc::services::SpaceCenter::Vessel RocketMainThread::getVessel() {
 }
 
 void RocketMainThread::launchToOrbit(double _orbitAltitude) {
-
-    ThreadInterface* launchThread = new LaunchThread(vessel, rocketData);
+    ThreadInterface* launchThread = new LaunchThread(spaceCenter, vessel, rocketData);
     if (launchThread == nullptr) {
         throw std::runtime_error("LaunchToOrbit: new error");
     }
+    rocketData->setRequestedOrbitAltitude(_orbitAltitude);
     activeThreadsMutex.lock();
     activeThreads.push_back(launchThread);
     activeThreadsMutex.unlock();

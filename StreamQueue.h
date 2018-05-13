@@ -2,42 +2,59 @@
 #define STREAMQUEUE_H
 #include <krpc.hpp>
 #include <krpc/stream.hpp>
+#include <deque>
 #include <mutex>
 #include <condition_variable>
-#include <deque>
-#include <functional>
+#include "ThreadInterface.h"
 
 template <class T>
-class StreamQueue {
+class StreamQueue : public ThreadInterface {
 private:
-    std::deque<T>               streamQueue;
-    krpc::Stream<T>             stream;
-    std::mutex*                 streamDataReceivedMutex;
-    std::condition_variable*    streamDataReceivedCondition;
+    std::deque<T>       streamQueue;
+    krpc::Stream<T>     stream;
+    std::mutex          queueMutex;
 
 public:
-    StreamQueue(krpc::Stream<T> _stream, std::mutex* _streamDataReceivedMutex, std::condition_variable* _streamDataReceivedCondition = nullptr, float _rate = 50) {
+    StreamQueue(krpc::Stream<T> _stream,
+                float _rate = 50) {
         stream = _stream;
-        streamDataReceivedMutex = _streamDataReceivedMutex;
-        streamDataReceivedCondition = _streamDataReceivedCondition;
         stream.set_rate(_rate);
-    }
-
-    void startQueue() {
-        stream.start();
     }
 
     bool isEmpty() {
         return (streamQueue.size() == 0);
     }
 
-    T receive() {
-        std::unique_lock<std::mutex> lck(&streamDataReceivedMutex);
-        T result = streamQueue.front();
-        streamQueue.pop_front();
-        return result;
+    T receiveLast() {
+        T val;
+        queueMutex.lock();
+        val = streamQueue.back();
+        streamQueue.clear();
+        queueMutex.unlock();
+        return val;
     }
 
+    T receive(){
+        T val;
+        queueMutex.lock();
+        val = streamQueue.front();
+        streamQueue.pop_front();
+        queueMutex.unlock();
+        return val;
+    }
+
+protected:
+    void internalThreadEntry() {
+        stream.acquire();
+        while(isRunning()) {
+            stream.wait();
+            queueMutex.lock();
+            streamQueue.push_back(stream());
+            queueMutex.unlock();
+        }
+        stream.release();
+        streamQueue.clear();
+    }
 };
 
 #endif // STREAMQUEUE_H

@@ -29,7 +29,7 @@ public:
     double getRequestedOrbitAltitude ();
 
     krpc::services::SpaceCenter::Fairing getFairing() const;
-    void setFairing(const krpc::services::SpaceCenter::Fairing &_fairing);
+    void setFairing(krpc::services::SpaceCenter::Fairing _fairing);
 };
 
 #endif // ROCKETDATA_H

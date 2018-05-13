@@ -20,4 +20,5 @@ HEADERS += \
     LaunchThread.h \
     RocketData.h \
     RocketMainThread.h \
-    ThreadInterface.h
+    ThreadInterface.h \
+    StreamQueue.h

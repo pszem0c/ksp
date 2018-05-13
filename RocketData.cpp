@@ -8,6 +8,14 @@ RocketData::RocketData () {
 
 RocketData::~RocketData () { }
 
+krpc::services::SpaceCenter::Fairing RocketData::getFairing() const {
+    return fairing;
+}
+
+void RocketData::setFairing(const krpc::services::SpaceCenter::Fairing &_fairing) {
+    fairing = _fairing;
+}
+
 void RocketData::setStageCount(int _stageCount) {
     stageCount = _stageCount;
 }

@@ -16,6 +16,9 @@ private:
     DisplayThread() {}
     std::deque<DisplayMsg* > displayMsgQueue;
     std::mutex displayMsgQueueMutex;
+    std::condition_variable msgReceivedCondition;
+
+    void processStringMsg(DisplayMsg* msg);
 
 public:
     static DisplayThread& instance() {

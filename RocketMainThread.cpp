@@ -1,9 +1,9 @@
 #include "RocketMainThread.h"
 #include "RocketData.h"
 #include "LaunchThread.h"
+#include "DisplayThread.h"
 #include <exception>
-
-#include <iostream>
+#include <string>
 
 RocketMainThread::RocketMainThread () {
     rocketData = new RocketData();
@@ -42,11 +42,13 @@ void RocketMainThread::launchToOrbit(double _orbitAltitude) {
 }
 
 void RocketMainThread::internalThreadEntry() {
+    DisplayThread::instance().sendMsg("RocketMainThread started.", MsgType::String);
     while(isRunning()) {
         std::unique_lock<std::mutex> lck(threadFinishedMutex);
         threadFinishedCondition.wait(lck);
         for (auto thread: activeThreads) {
             if (thread->isFinished()) {
+                DisplayThread::instance().sendMsg("RocketMainThread: thread joined.", MsgType::String);
                 thread->waitForJoin();
             }
         }

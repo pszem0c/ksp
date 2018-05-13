@@ -8,11 +8,11 @@ class RocketData;
 
 class RocketMainThread : public ThreadInterface {
 private:
-    krpc::services::SpaceCenter::Vessel vessel;
-    krpc::services::SpaceCenter::Flight flight;
-    RocketData* rocketData;
-    std::vector<ThreadInterface* > activeThreads;
-    std::mutex activeThreadsMutex;
+    krpc::services::SpaceCenter::Vessel     vessel;
+    krpc::services::SpaceCenter::Flight     flight;
+    RocketData*                             rocketData;
+    std::vector<ThreadInterface* >          activeThreads;
+    std::mutex                              activeThreadsMutex;
 
 public:
     RocketMainThread();

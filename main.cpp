@@ -4,6 +4,7 @@
 #include <exception>
 
 #include "RocketMainThread.h"
+#include "DisplayThread.h"
 
 using namespace std;
 
@@ -15,10 +16,11 @@ int main() {
 
         RocketMainThread puffin;
         puffin.setVessel(sc.active_vessel());
-
+        DisplayThread::instance().startThread();
 
 
         puffin.startThread();
+        puffin.launchToOrbit(80000);
         puffin.waitForJoin();
     } catch (exception& e) {
         cout << e.what() << endl;

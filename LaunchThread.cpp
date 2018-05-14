@@ -106,8 +106,8 @@ void LaunchThread::stageOneThrustControll(double altitude, float dynamicPressure
 }
 
 void LaunchThread::apoapsisReached() {
-  for (int i = 0; i < 80; i++) {
-      vessel.control().set_throttle(0.8-i*0.01);
+  for (int i = 0; i < 20; i++) {
+      vessel.control().set_throttle(0.8-i*0.04);
       sleepFor(0.01);
     }
   vessel.control().set_throttle(0);
@@ -148,6 +148,9 @@ void LaunchThread::circularizeBurn(krpc::services::SpaceCenter::Node &node) {
     double apoapsisVal = apoapsis->receiveLast();
     if (remainingBurnVal < 50.0) {
       thrust = 0.1;
+      if (remainingBurnVal < 10.) {
+        thrust = 0.02;
+      }
       if (apoapsisVal >= rocketData.getRequestedOrbitAltitude()) {
         thrust = 0.0;
         launchState = LaunchState::Stop;
@@ -233,7 +236,6 @@ void LaunchThread::internalThreadEntry() {
             double altitudeVal = altitude->receiveLast();
             double apoapsisVal = apoapsis->receiveLast();
             double dynamicPressureVal = dynamicPressure->receiveLast();
-
 
             pitchAngle = computePitchAngle(altitudeVal, atmosphereDepth, finalOrbit);
             vessel.auto_pilot().target_pitch_and_heading(pitchAngle, 90);

@@ -30,6 +30,7 @@ private:
     StreamQueue<double>* altitude;
     StreamQueue<double>* apoapsis;
     StreamQueue<float>* dynamicPressure;
+    StreamQueue<std::tuple<double, double, double> >* remainingBurn;
 
     //auxiliaryFunction
     void traversePartTree(std::function<void (krpc::services::SpaceCenter::Part& part, int depth)> fun);
@@ -45,8 +46,8 @@ private:
     void stageOneThrustControll(double altitude, float dynamicPressure);
     void apoapsisReached();
     void computeCircularizeNode(krpc::services::SpaceCenter::Node& node, double& burnTime, double& startTime);
-    void jettisonFairing();
-    void circularizeBurn();
+    void jettisonFairing(double altitudeVal, bool &jettisoned);
+    void circularizeBurn(krpc::services::SpaceCenter::Node& node);
 
 public:
     LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData);

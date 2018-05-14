@@ -55,6 +55,7 @@ void RocketMainThread::internalThreadEntry() {
                 if (thread->isFinished()) {
                     DisplayThread::instance().sendMsg("RocketMainThread: " + thread->getName()+ " joined.", MsgType::String);
                     thread->waitForJoin();
+                    delete thread;
                 }
             }
         }

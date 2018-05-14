@@ -12,9 +12,14 @@ LaunchThread::LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::ser
   spaceCenter(_spaceCenter),
   vessel(_vessel),
   flight(_vessel.flight(_vessel.surface_reference_frame())),
-  rocketData(_rocketData) {}
+  rocketData(_rocketData),
+  altitude(nullptr),
+  apoapsis(nullptr),
+  dynamicPressure(nullptr),
+  remainingBurn(nullptr) {}
 
-LaunchThread::~LaunchThread () {}
+LaunchThread::~LaunchThread () {
+}
 
 void LaunchThread::traversePartTree(std::function<void (krpc::services::SpaceCenter::Part&, int)> fun) {
   auto root = vessel.parts().root();
@@ -40,7 +45,14 @@ void LaunchThread::countStages() {
 
 void LaunchThread::computeAvailableDeltaV() {
   //TODO: computing deltaC for more stages
-  rocketData.setAvailableDeltaV(vessel.specific_impulse()*9.82*log(vessel.mass()/vessel.dry_mass()));
+  double thrustSum = 0.0;
+  double thrustIspRatioSum = 0.0;
+  for (auto engine: vessel.parts().engines()) {
+    thrustSum += engine.max_vacuum_thrust();
+    thrustIspRatioSum += engine.max_vacuum_thrust()/engine.vacuum_specific_impulse();
+  }
+  double isp = thrustSum/thrustIspRatioSum;
+  rocketData.setAvailableDeltaV(isp*9.82*log(vessel.mass()/vessel.dry_mass()));
 }
 
 void LaunchThread::writeMsg(std::string str) {
@@ -68,6 +80,7 @@ void LaunchThread::liftoff() {
   vessel.control().set_throttle(1);
   vessel.control().activate_next_stage();
   launchState = LaunchState::StageOne;
+  writeMsg("LaunchState: StageOne.");
   altitude->startThread();
   apoapsis->startThread();
   dynamicPressure->startThread();
@@ -84,9 +97,9 @@ void LaunchThread::stageOneThrustControll(double altitude, float dynamicPressure
   if (altitude > 20000.0) {
       vessel.control().set_throttle(0.8);
     } else if (dynamicPressure > 15000.0) {
-      double error = error((dynamicPressure-15000.0)/1000.0);
+      double error = ((dynamicPressure-15000.0)/1000.0);
       error = (error>1.0) ? 1.0 : error;
-      vessel.control().set_throttle(1 - 0.30());
+      vessel.control().set_throttle(1 - 0.30*error);
     } else {
       vessel.control().set_throttle(1);
     }
@@ -98,25 +111,60 @@ void LaunchThread::apoapsisReached() {
       sleepFor(0.01);
     }
   vessel.control().set_throttle(0);
-  writeMsg("Apoapsis reached: " + std::to_string(apoapsisVal) );
+  writeMsg("Apoapsis reached: " + std::to_string(vessel.orbit().apoapsis_altitude()) );
   launchState = LaunchState::Circularize;
+  writeMsg("LaunchState: Circularize.");
   vessel.auto_pilot().disengage();
+  vessel.control().set_sas(true);
+  vessel.control().set_sas_mode(krpc::services::SpaceCenter::SASMode::prograde);
+  vessel.control().set_rcs(true);
   apoapsis->stopThread();
+  apoapsis->waitForJoin();
   dynamicPressure->stopThread();
+  dynamicPressure->waitForJoin();
 }
 
-void LaunchThread::jettisonFairing() {
-  if (!altitude->isEmpty()) {
-    double altitudeVal = altitude->receiveLast();
-    if ((altitudeVal > 45000.0)) {
-        writeMsg("Fairing jettisoned at: " + std::to_string(altitudeVal));
-        vessel.control().activate_next_stage();
-        altitude->stopThread();
-      }
+void LaunchThread::jettisonFairing(double altitudeVal, bool& jettisoned) {
+  if (!jettisoned && (altitudeVal > 45000.0)) {
+    writeMsg("Fairing jettisoned at: " + std::to_string(altitudeVal));
+    vessel.control().activate_next_stage();
+    jettisoned = true;
   }
 }
 
-void LaunchThread::computeCircularizeNode(krpc::services::SpaceCenter::Node node,
+void LaunchThread::circularizeBurn(krpc::services::SpaceCenter::Node &node) {
+  if (remainingBurn == nullptr) {
+    remainingBurn = new StreamQueue<std::tuple<double, double, double> >(node.remaining_burn_vector_stream(node.orbital_reference_frame()));
+    remainingBurn->startThread();
+    apoapsis->startThread();
+  }
+  if (vessel.control().rcs()) {
+      vessel.control().set_rcs(false);
+  }
+
+  if (!remainingBurn->isEmpty() && !apoapsis->isEmpty()) {
+    double thrust;
+    double remainingBurnVal = std::get<1>(remainingBurn->receiveLast());
+    double apoapsisVal = apoapsis->receiveLast();
+    if (remainingBurnVal < 50.0) {
+      thrust = 0.1;
+      if (apoapsisVal >= rocketData.getRequestedOrbitAltitude()) {
+        thrust = 0.0;
+        launchState = LaunchState::Stop;
+        remainingBurn->stopThread();
+        remainingBurn->waitForJoin();
+        apoapsis->stopThread();
+        apoapsis->waitForJoin();
+        writeMsg("LaunchState: Stop.");
+      }
+    } else {
+      thrust = 1.0;
+    }
+    vessel.control().set_throttle(thrust);
+  }
+}
+
+void LaunchThread::computeCircularizeNode(krpc::services::SpaceCenter::Node& node,
                                           double& burnTime,
                                           double& startTime) {
   double availableDeltaV = vessel.specific_impulse()*9.82*log(vessel.mass()/vessel.dry_mass());
@@ -159,6 +207,7 @@ void LaunchThread::internalThreadEntry() {
   double circularizeStartTime;
   krpc::services::SpaceCenter::Node circularizeNode;
 
+  bool fairingJettisoned = false;
   double finalOrbit = rocketData.getRequestedOrbitAltitude();
   double atmosphereDepth = vessel.orbit().body().atmosphere_depth();
   launchState = LaunchState::Countdown;
@@ -170,6 +219,7 @@ void LaunchThread::internalThreadEntry() {
 
   initRocketData();
   writeMsg("LaunchThread started.");
+  writeMsg("LaunchState: Countdown.");
   writeMsg("DeltaV: " + std::to_string(rocketData.getAvailableDeltaV()));
 
   while(isRunning()) {
@@ -186,7 +236,7 @@ void LaunchThread::internalThreadEntry() {
 
 
             pitchAngle = computePitchAngle(altitudeVal, atmosphereDepth, finalOrbit);
-            vessel.auto_pilot().target_pitch_and_heading(pitch, heading);
+            vessel.auto_pilot().target_pitch_and_heading(pitchAngle, 90);
 
             // slow down near maxQ
             stageOneThrustControll(altitudeVal, dynamicPressureVal);
@@ -194,36 +244,33 @@ void LaunchThread::internalThreadEntry() {
             // apoapsis reached
             if (apoapsisVal > (atmosphereDepth*0.9 + finalOrbit*0.1)) {
               apoapsisReached();
-              computeCircularizeNode(circularizeNode, circularizeBurnTime);
+              computeCircularizeNode(circularizeNode, circularizeBurnTime, circularizeStartTime);
             }
           }
         break;
       case LaunchState::Circularize:
+        if (!altitude->isEmpty()) {
+          double altitudeVal = altitude->receiveLast();
+          //jettison fairing
+          jettisonFairing(altitudeVal, fairingJettisoned);
 
-        //jettison fairing
-        jettisonFairing();
-
-        vessel.control().set_rcs(true);
-        vessel.control().set_sas(true);
-        vessel.control().set_sas_mode(krpc::services::SpaceCenter::SASMode::maneuver);
-
-        if (spaceCenter.ut() > circularizeStartTime) {
-            vessel.control().set_rcs(false);
-            vessel.control().set_throttle(1.0);
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((circularizeBurnTime)*1000.0)));
-            vessel.control().set_throttle(0.0);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            vessel.control().activate_next_stage();
-            vessel.auto_pilot().disengage();
-            launchState = LaunchState::Stop;
+          if (spaceCenter.ut() > circularizeStartTime) {
+            circularizeBurn(circularizeNode);
+          } else if (altitudeVal > atmosphereDepth) {
+            if (vessel.control().sas_mode() != krpc::services::SpaceCenter::SASMode::maneuver) {
+              vessel.control().set_sas_mode(krpc::services::SpaceCenter::SASMode::maneuver);
+            }
           }
-
-        sleepFor(0.01);
+        }
         break;
       case LaunchState::Idle:
         sleepFor(0.01);
         break;
       case LaunchState::Stop:
+        sleepFor(1);
+        vessel.control().activate_next_stage();
+        launchState = LaunchState::Idle;
+        stopThread();
         break;
       default:
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

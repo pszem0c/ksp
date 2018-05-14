@@ -3,18 +3,11 @@
 // Constructors/Destructors
 //  
 
-RocketData::RocketData () {
+RocketData::RocketData() :
+    stageCount(0), availableDeltaV(0), requestedOrbitAltitude(0) {
 }
 
 RocketData::~RocketData () { }
-
-krpc::services::SpaceCenter::Fairing RocketData::getFairing() const {
-    return fairing;
-}
-
-void RocketData::setFairing(krpc::services::SpaceCenter::Fairing _fairing) {
-    fairing = _fairing;
-}
 
 void RocketData::setStageCount(int _stageCount) {
     stageCount = _stageCount;

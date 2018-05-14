@@ -14,12 +14,9 @@ int main() {
         auto conn = krpc::connect("puffin", "192.168.1.100");
         krpc::services::SpaceCenter sc(&conn);
 
-        RocketMainThread puffin;
-        puffin.setVessel(sc.active_vessel());
-        puffin.setSpaceCenter(&sc);
+        RocketMainThread puffin(sc);
+
         DisplayThread::instance().startThread();
-
-
         puffin.startThread();
         puffin.launchToOrbit(80000);
         puffin.waitForJoin();

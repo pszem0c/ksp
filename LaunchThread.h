@@ -19,10 +19,10 @@ class LaunchThread : public ThreadInterface {
     };
 
 private:
-    krpc::services::SpaceCenter*        spaceCenter;
+    krpc::services::SpaceCenter&        spaceCenter;
     krpc::services::SpaceCenter::Vessel vessel;
     krpc::services::SpaceCenter::Flight flight;
-    RocketData* rocketData;
+    RocketData& rocketData;
     LaunchState launchState;
 
     //stream
@@ -30,9 +30,13 @@ private:
     StreamQueue<double>* apoapsis;
     StreamQueue<float>* dynamicPressure;
 
+    //lauchProcedures
+
+
+    void traversePartTree(std::function<void (krpc::services::SpaceCenter::Part part)> fun);
     void initRocketData();
 public:
-    LaunchThread (krpc::services::SpaceCenter* _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData* _rocketData);
+    LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData);
     virtual ~LaunchThread ();
 
 protected:

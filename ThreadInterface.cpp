@@ -3,7 +3,8 @@
 std::condition_variable ThreadInterface::threadFinishedCondition;
 std::mutex ThreadInterface::threadFinishedMutex;
 
-ThreadInterface::ThreadInterface () {
+ThreadInterface::ThreadInterface (std::string str) {
+    name = str;
     thread = nullptr;
     threadState = ThreadState::Created;
 }
@@ -39,4 +40,8 @@ void ThreadInterface::detachThread() {
 
 void ThreadInterface::waitForJoin() {
     thread->join();
+}
+
+std::string ThreadInterface::getName() {
+    return name;
 }

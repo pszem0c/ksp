@@ -3,6 +3,7 @@
 
 #include <thread>
 #include <condition_variable>
+#include <string>
 
 class ThreadInterface {    
     enum ThreadState {
@@ -13,6 +14,7 @@ class ThreadInterface {
     };
 
 private:
+    std::string name;
     std::thread* thread;
     ThreadState threadState;
     static void internalThreadEntryFunc (void* thisObj);
@@ -23,7 +25,7 @@ protected:
     static std::condition_variable threadFinishedCondition;
 
 public:
-    ThreadInterface ();
+    ThreadInterface (std::string str = "");
     virtual ~ThreadInterface () {}
 
     void startThread ();
@@ -32,6 +34,7 @@ public:
     bool isFinished();
     void detachThread ();
     void waitForJoin ();
+    std::string getName();
 };
 
 #endif // THREDINTERFACE_H

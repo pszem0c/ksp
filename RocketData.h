@@ -15,7 +15,6 @@ private:
     int stageCount;
     double availableDeltaV;
     double requestedOrbitAltitude;
-    krpc::services::SpaceCenter::Fairing fairing;
 
 public:
 
@@ -27,9 +26,6 @@ public:
 
     void setRequestedOrbitAltitude (double _altitude);
     double getRequestedOrbitAltitude ();
-
-    krpc::services::SpaceCenter::Fairing getFairing() const;
-    void setFairing(krpc::services::SpaceCenter::Fairing _fairing);
 };
 
 #endif // ROCKETDATA_H

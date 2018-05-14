@@ -6,16 +6,20 @@
 #include <chrono>
 #include <math.h>
 
-LaunchThread::LaunchThread (krpc::services::SpaceCenter* _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData* _rocketData) {
-    spaceCenter = _spaceCenter;
-    vessel = _vessel;
-    flight = vessel.flight();
-    rocketData = _rocketData;
+LaunchThread::LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData):
+    ThreadInterface("Launch thread: " + _vessel.name()),
+    spaceCenter(_spaceCenter),
+    vessel(_vessel),
+    flight(_vessel.flight()),
+    rocketData(_rocketData){
+
 }
 
 LaunchThread::~LaunchThread () {
 
 }
+
+
 
 void LaunchThread::initRocketData() {
     // calc stage count and search for fairing
@@ -33,16 +37,12 @@ void LaunchThread::initRocketData() {
       for (auto child : part.children())
         stack.push(std::pair<krpc::services::SpaceCenter::Part, int>(child, depth+1));
     }
-    rocketData->setStageCount(stageCount);
-    for(auto& rcs: vessel.parts().rcs()) {
-        rcs.active()
-    }
-
+    rocketData.setStageCount(stageCount);
 }
 
 
 void LaunchThread::internalThreadEntry() {
-    double finalOrbit = rocketData->getRequestedOrbitAltitude();
+    double finalOrbit = rocketData.getRequestedOrbitAltitude();
     double angle;
     double atmosphereDepth = vessel.orbit().body().atmosphere_depth();
     krpc::services::SpaceCenter::Node circularizeNode;
@@ -53,11 +53,10 @@ void LaunchThread::internalThreadEntry() {
     dynamicPressure = new StreamQueue<float>(flight.dynamic_pressure_stream());
 
     initRocketData();
-    DisplayThread::instance().sendMsg("Stage count: " + std::to_string(rocketData->getStageCount()), MsgType::String);
+    DisplayThread::instance().sendMsg("Stage count: " + std::to_string(rocketData.getStageCount()), MsgType::String);
     DisplayThread::instance().sendMsg("LaunchThread started.", MsgType::String);
     DisplayThread::instance().sendMsg("AtmosphereDepth= " + std::to_string(atmosphereDepth), MsgType::String);
     DisplayThread::instance().sendMsg("FinalOrbit= " + std::to_string(finalOrbit), MsgType::String);
-
 
     while(isRunning()) {
         switch (launchState) {
@@ -115,7 +114,7 @@ void LaunchThread::internalThreadEntry() {
                     double v2 = sqrt(mu*((2.0/r)-(1.0/a2)));
                     double deltaV = v2 - v1;
 
-                    circularizeNode = vessel.control().add_node(spaceCenter->ut() + vessel.orbit().time_to_apoapsis(), deltaV, 0, 0);
+                    circularizeNode = vessel.control().add_node(spaceCenter.ut() + vessel.orbit().time_to_apoapsis(), deltaV, 0, 0);
 
                     DisplayThread::instance().sendMsg("AvailableDeltaV: " + std::to_string(availableDeltaV) , MsgType::String);
                     DisplayThread::instance().sendMsg("NodeDeltaV: " + std::to_string(deltaV) , MsgType::String);
@@ -126,10 +125,15 @@ void LaunchThread::internalThreadEntry() {
                     double thrust = vessel.available_thrust();
                     double isp = vessel.specific_impulse() * 9.82;
                     double m0 = vessel.mass();
-                    double m1 = m0 / exp(deltaV/isp);
+                    double m1 = m0 * exp(-deltaV/isp);
                     double flowRate = thrust / isp;
                     circularizeBurnTime = (m0 - m1) / flowRate;
 
+                    DisplayThread::instance().sendMsg("T: " + std::to_string(thrust) , MsgType::String);
+                    DisplayThread::instance().sendMsg("isp: " + std::to_string(isp) , MsgType::String);
+                    DisplayThread::instance().sendMsg("m0: " + std::to_string(m0) , MsgType::String);
+                    DisplayThread::instance().sendMsg("m1: " + std::to_string(m1) , MsgType::String);
+                    DisplayThread::instance().sendMsg("flow: " + std::to_string(flowRate) , MsgType::String);
                     DisplayThread::instance().sendMsg("BurnTime: " + std::to_string(circularizeBurnTime) , MsgType::String);
 
                 }
@@ -154,7 +158,7 @@ void LaunchThread::internalThreadEntry() {
                 vessel.control().set_throttle(1.0);
                 std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>((circularizeBurnTime)*1000.0)));
                 vessel.control().set_throttle(0.0);
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 vessel.control().activate_next_stage();
                 vessel.auto_pilot().disengage();
                 launchState = LaunchState::Idle;

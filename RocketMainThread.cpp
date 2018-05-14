@@ -5,25 +5,25 @@
 #include <exception>
 #include <string>
 
-RocketMainThread::RocketMainThread () {
-    rocketData = new RocketData();
-}
+RocketMainThread::RocketMainThread(krpc::services::SpaceCenter &_sc) : ThreadInterface("RocketThread: " + _sc.active_vessel().name()),
+    spaceCenter(_sc),
+    vessel(_sc.active_vessel()),
+    flight(_sc.active_vessel().flight(_sc.active_vessel().surface_reference_frame())),
+    rocketData(RocketData()) {}
 
 RocketMainThread::~RocketMainThread () {
     if (isRunning()) {
         for(auto thread : activeThreads) {
             thread->stopThread();
-            thread->waitForJoin();
         }
         stopThread();
+    } else {
+        for(auto thread : activeThreads) {
+            thread->stopThread();
+            waitForJoin();
+        }
     }
-    delete rocketData;
 }
-
-void RocketMainThread::setSpaceCenter(krpc::services::SpaceCenter* _spaceCenter) {
-    spaceCenter = _spaceCenter;
-}
-
 void RocketMainThread::setVessel(krpc::services::SpaceCenter::Vessel _vessel) {
     vessel = _vessel;
     flight = vessel.flight(vessel.surface_reference_frame());
@@ -38,7 +38,7 @@ void RocketMainThread::launchToOrbit(double _orbitAltitude) {
     if (launchThread == nullptr) {
         throw std::runtime_error("LaunchToOrbit: new error");
     }
-    rocketData->setRequestedOrbitAltitude(_orbitAltitude);
+    rocketData.setRequestedOrbitAltitude(_orbitAltitude);
     activeThreadsMutex.lock();
     activeThreads.push_back(launchThread);
     activeThreadsMutex.unlock();
@@ -49,12 +49,15 @@ void RocketMainThread::internalThreadEntry() {
     DisplayThread::instance().sendMsg("RocketMainThread started.", MsgType::String);
     while(isRunning()) {
         std::unique_lock<std::mutex> lck(threadFinishedMutex);
-        threadFinishedCondition.wait(lck);
-        for (auto thread: activeThreads) {
-            if (thread->isFinished()) {
-                DisplayThread::instance().sendMsg("RocketMainThread: thread joined.", MsgType::String);
-                thread->waitForJoin();
+        if (activeThreads.size() ) {
+            threadFinishedCondition.wait(lck);
+            for (auto thread: activeThreads) {
+                if (thread->isFinished()) {
+                    DisplayThread::instance().sendMsg("RocketMainThread: " + thread->getName()+ " joined.", MsgType::String);
+                    thread->waitForJoin();
+                }
             }
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }

@@ -15,7 +15,8 @@ class LaunchThread : public ThreadInterface {
         Idle,
         Countdown,
         StageOne,
-        Circularize
+        Circularize,
+        Stop,
     };
 
 private:
@@ -30,11 +31,23 @@ private:
     StreamQueue<double>* apoapsis;
     StreamQueue<float>* dynamicPressure;
 
+    //auxiliaryFunction
+    void traversePartTree(std::function<void (krpc::services::SpaceCenter::Part& part, int depth)> fun);
+    void countStages();
+    void computeAvailableDeltaV();
+    void writeMsg(std::string str);
+
     //lauchProcedures
-
-
-    void traversePartTree(std::function<void (krpc::services::SpaceCenter::Part part)> fun);
     void initRocketData();
+    void countdown();
+    void liftoff();
+    double computePitchAngle(double altitudeVal, double atmosphereDepth, double finalOrbit, double exponentation = 0.5);
+    void stageOneThrustControll(double altitude, float dynamicPressure);
+    void apoapsisReached();
+    void computeCircularizeNode(krpc::services::SpaceCenter::Node& node, double& burnTime, double& startTime);
+    void jettisonFairing();
+    void circularizeBurn();
+
 public:
     LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData);
     virtual ~LaunchThread ();

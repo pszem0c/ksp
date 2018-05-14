@@ -6,35 +6,37 @@
 #include <string>
 
 class ThreadInterface {    
-    enum ThreadState {
-        Created,
-        Running,
-        Stopped,
-        Finished,
-    };
+  enum ThreadState {
+    Created,
+    Running,
+    Stopped,
+    Finished,
+  };
 
 private:
-    std::string name;
-    std::thread* thread;
-    ThreadState threadState;
-    static void internalThreadEntryFunc (void* thisObj);
+  std::string name;
+  std::thread* thread;
+  ThreadState threadState;
+  static void internalThreadEntryFunc (void* thisObj);
 
 protected:
-    virtual void internalThreadEntry() = 0;
-    static std::mutex threadFinishedMutex;
-    static std::condition_variable threadFinishedCondition;
+  void sleepFor(double seconds);
+  virtual void internalThreadEntry() = 0;
+  static std::mutex threadFinishedMutex;
+  static std::condition_variable threadFinishedCondition;
+
 
 public:
-    ThreadInterface (std::string str = "");
-    virtual ~ThreadInterface () {}
+  ThreadInterface (std::string str = "");
+  virtual ~ThreadInterface () {}
 
-    void startThread ();
-    void stopThread ();
-    bool isRunning ();
-    bool isFinished();
-    void detachThread ();
-    void waitForJoin ();
-    std::string getName();
+  void startThread ();
+  void stopThread ();
+  bool isRunning ();
+  bool isFinished();
+  void detachThread ();
+  void waitForJoin ();
+  std::string getName();
 };
 
 #endif // THREDINTERFACE_H

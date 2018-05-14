@@ -21,6 +21,7 @@ public:
     void setVessel (krpc::services::SpaceCenter::Vessel _vessel);
     krpc::services::SpaceCenter::Vessel getVessel ();
     void launchToOrbit(double _orbitAltitude);
+    void hover();
 
 protected:
     void internalThreadEntry();

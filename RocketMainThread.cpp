@@ -2,6 +2,7 @@
 #include "RocketData.h"
 #include "LaunchThread.h"
 #include "DisplayThread.h"
+#include "HoverThread.h"
 #include <exception>
 #include <string>
 
@@ -43,6 +44,17 @@ void RocketMainThread::launchToOrbit(double _orbitAltitude) {
     activeThreads.push_back(launchThread);
     activeThreadsMutex.unlock();
     launchThread->startThread();
+}
+
+void RocketMainThread::hover() {
+    ThreadInterface* hoverThread = new HoverThread(spaceCenter, vessel, rocketData);
+    if (hoverThread == nullptr) {
+        throw std::runtime_error("LaunchToOrbit: new error");
+    }
+    activeThreadsMutex.lock();
+    activeThreads.push_back(hoverThread);
+    activeThreadsMutex.unlock();
+    hoverThread->startThread();
 }
 
 void RocketMainThread::internalThreadEntry() {

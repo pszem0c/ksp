@@ -4,7 +4,7 @@
 #include <string>
 #include <stack>
 #include <chrono>
-#include <math.h>
+#include <cmath>
 #include <algorithm>
 
 LaunchThread::LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData):
@@ -148,8 +148,8 @@ void LaunchThread::circularizeBurn(krpc::services::SpaceCenter::Node &node) {
     double apoapsisVal = apoapsis->receiveLast();
     if (remainingBurnVal < 50.0) {
       thrust = 0.1;
-      if (remainingBurnVal < 10.) {
-        thrust = 0.02;
+      if (remainingBurnVal < 10.0) {
+        thrust = 0.01;
       }
       if (apoapsisVal >= rocketData.getRequestedOrbitAltitude()) {
         thrust = 0.0;

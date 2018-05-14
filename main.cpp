@@ -24,7 +24,8 @@ int main() {
 
       DisplayThread::instance().startThread();
       puffin.startThread();
-      puffin.launchToOrbit(80000);
+      //puffin.launchToOrbit(80000);
+      puffin.hover();
       puffin.waitForJoin();
     }
   } catch (exception& e) {

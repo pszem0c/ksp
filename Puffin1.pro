@@ -12,7 +12,8 @@ SOURCES += \
     LaunchThread.cpp \
     RocketData.cpp \
     RocketMainThread.cpp \
-    ThreadInterface.cpp
+    ThreadInterface.cpp \
+    HoverThread.cpp
 
 HEADERS += \
     DisplayMsg.h \
@@ -21,4 +22,5 @@ HEADERS += \
     RocketData.h \
     RocketMainThread.h \
     ThreadInterface.h \
-    StreamQueue.h
+    StreamQueue.h \
+    HoverThread.h

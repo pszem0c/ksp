@@ -6,8 +6,6 @@
 #include <algorithm>
 #include "regulatorpi.h"
 #include "signalgenerator.h"
-#include <krpc/services/ui.hpp>
-#include <krpc/services/drawing.hpp>
 
 constexpr double pi() { return std::atan(1)*4; }
 
@@ -102,23 +100,19 @@ void HoverThread::internalThreadEntry() {
   velocityRegulator.prepare();
   velocityRegulator.setSetPoint(std::shared_ptr<SignalGenerator>(new SignalConstant));
 
+  RegulatorPI pitchRegulator(0.01, 0, 1);
+  pitchRegulator.prepare();
+  pitchRegulator.setSetPoint(std::shared_ptr<SignalGenerator>(new SignalConstant));
+  RegulatorPI yawRegulator(0.01, 0, 1);
+  yawRegulator.prepare();
+  yawRegulator.setSetPoint(std::shared_ptr<SignalGenerator>(new SignalConstant));
+
+
   //definestreams
   velocity = new StreamQueue<double>(vessel.flight(vessel.orbit().body().reference_frame()).vertical_speed_stream());
 
   createLandingReferenceFrame();
   positionRelLs = new StreamQueue<vector3>(vessel.position_stream(landingSiteReferenceFrame));
-  krpc::services::Drawing drawing(&connection);
-  drawing.add_direction(std::make_tuple(1.0, 0.0, 0.0), landingSiteReferenceFrame);
-  drawing.add_direction(std::make_tuple(0.0, 1.0, 0.0), landingSiteReferenceFrame);
-  drawing.add_direction(std::make_tuple(0.0, 0.0, 1.0), landingSiteReferenceFrame);
-
-  //krpc::services::Drawing::Line vesselZ = drawing.add_direction(std::make_tuple(0.0, 0.0, 1.0), vessel.reference_frame());
-  //krpc::services::Drawing::Line vesselX = drawing.add_direction(std::make_tuple(1.0, 0.0, 0.0), vessel.reference_frame());
-  //krpc::services::Drawing::Line surfaceVesselZ = drawing.add_direction(std::make_tuple(0.0, 0.0, 1.0), vessel.surface_reference_frame());
-  //krpc::services::Drawing::Line surfaceVesselY = drawing.add_direction(std::make_tuple(0.0, 1.0, 1.0), vessel.surface_reference_frame());
-  //surfaceVesselZ.set_color(std::make_tuple(1.0, 0 ,0));
-  //surfaceVesselY.set_color(std::make_tuple(1.0, 0 ,0));
-
 
   vessel.control().set_rcs(true);
   vessel.auto_pilot().engage();
@@ -133,43 +127,31 @@ void HoverThread::internalThreadEntry() {
           velocity->startThread();
           positionRelLs->startThread();
           hoverState = HoverState::Hover;
+          vessel.auto_pilot().disengage();
           break;
         case HoverState::Hover:
           if (!velocity->isEmpty()) {
             double velocityVal = velocity->receiveLast();
             double gravityForce = mu*vessel.mass()/pow((r+flight.mean_altitude()),2);
             double cv = velocityRegulator.simulate(velocityVal);
-            //writeMsg("v= " + std::to_string(velocityVal));
-            //writeMsg("cv= " + std::to_string(cv));
-            double thrust = (gravityForce)/vessel.max_thrust() + cv;
-            thrust = std::max(0.0, std::min(1.0, thrust));
+            double thrust = clamp((gravityForce)/vessel.max_thrust() + cv, 0.0, 1.0);
             vessel.control().set_throttle(thrust);
           }
           if (!positionRelLs->isEmpty()) {
-
-            vesselX.remove();
-            vesselZ.remove();
-            surfaceVesselZ.remove();
-            surfaceVesselY.remove();
-
-            vesselZ = drawing.add_direction(std::make_tuple(0.0, 0.0, 1.0), vessel.reference_frame());
-            vesselX = drawing.add_direction(std::make_tuple(1.0, 0.0, 0.0), vessel.reference_frame());
-            surfaceVesselZ = drawing.add_direction(std::make_tuple(0.0, 0.0, 1.0), vessel.surface_reference_frame());
-            surfaceVesselY = drawing.add_direction(std::make_tuple(0.0, 1.0, 0.0), vessel.surface_reference_frame());
-            surfaceVesselZ.set_color(std::make_tuple(1.0, 0 ,0));
-            surfaceVesselY.set_color(std::make_tuple(1.0, 0 ,0));
-
             vector3 positionRelLsVal = positionRelLs->receiveLast();
-            vector3 vesselDown = spaceCenter.transform_direction(std::make_tuple(0, 0, 1), vessel.reference_frame(), vessel.surface_reference_frame());
-            vector3 horizonDirection {0, std::get<1>(vesselDown), std::get<2>(vesselDown)};
-            writeMsg("horizonDir: y: " + std::to_string(std::get<1>(horizonDirection)) + " z: " + std::to_string(std::get<2>(horizonDirection)));
-            //vector3 vesselDirection = vessel.direction(vessel.surface_reference_frame());
-            vector3 landingSiteDirection {0, -std::get<2>(positionRelLsVal), -std::get<1>(positionRelLsVal)};
-            //normalizeVector(landingSiteDirection);
-            writeMsg("lsDir: y: " + std::to_string(std::get<1>(landingSiteDirection)) + " z: " + std::to_string(std::get<2>(landingSiteDirection)));
-            double landingSiteAngle = angleBetweenVectors(horizonDirection, landingSiteDirection);
-            writeMsg(std::to_string(landingSiteAngle));
-
+            vector3 lsHorizonPosition {0.0, std::get<1>(positionRelLsVal), std::get<2>(positionRelLsVal)};
+            vector3 vesselDown {0.0, 0.0, 1.0};
+            vector3 surfaceVesselDown = spaceCenter.transform_direction(vesselDown, vessel.reference_frame(), vessel.surface_reference_frame());
+            double angle = atan2(std::get<2>(surfaceVesselDown), std::get<1>(surfaceVesselDown));
+            double zError = sin(angle)* magnitude(lsHorizonPosition); // pitch
+            double xError = cos(angle)* magnitude(lsHorizonPosition); // yaw
+            vessel.control().set_pitch(clamp(-pitchRegulator.simulate(zError), -1.0, 1.0));
+            vessel.control().set_yaw(clamp(-yawRegulator.simulate(xError), -1.0, 1.0));
+            writeMsg("angle: " + std::to_string(angle) +
+                     " ze: " + std::to_string(zError) +
+                     " xe: " + std::to_string(xError) +
+                     " p: " + std::to_string(vessel.control().pitch()) +
+                     " y: " + std::to_string(vessel.control().yaw()));
           }
           break;
         case HoverState::Descend:

@@ -35,6 +35,9 @@ private:
     double dotProduct(const vector3& u, const vector3& v);
     double magnitude(const vector3& v);
     double angleBetweenVectors(const vector3& u, const vector3& v);
+    template<class T> T clamp(const T& val, const T& lower, const T& upper) {
+      return std::min(upper, std::max(val, lower));
+    }
     void normalizeVector(vector3& v);
 
 public:

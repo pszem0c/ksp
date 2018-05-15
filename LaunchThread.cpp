@@ -7,8 +7,9 @@
 #include <cmath>
 #include <algorithm>
 
-LaunchThread::LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData):
+LaunchThread::LaunchThread (krpc::Client &_connection, krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData):
   ThreadInterface("Launch thread: " + _vessel.name()),
+  connection(_connection),
   spaceCenter(_spaceCenter),
   vessel(_vessel),
   flight(_vessel.flight(_vessel.surface_reference_frame())),

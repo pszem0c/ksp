@@ -6,9 +6,11 @@
 #include <exception>
 #include <string>
 
-RocketMainThread::RocketMainThread(krpc::services::SpaceCenter &_sc) : ThreadInterface("RocketThread: " + _sc.active_vessel().name()),
+RocketMainThread::RocketMainThread(krpc::Client _connection, krpc::services::SpaceCenter &_sc, krpc::services::SpaceCenter::Vessel _vessel) :
+    ThreadInterface("RocketThread: " + _sc.active_vessel().name()),
+    connection(_connection),
     spaceCenter(_sc),
-    vessel(_sc.active_vessel()),
+    vessel(_vessel),
     flight(_sc.active_vessel().flight(_sc.active_vessel().surface_reference_frame())),
     rocketData(RocketData()) {}
 
@@ -35,7 +37,7 @@ krpc::services::SpaceCenter::Vessel RocketMainThread::getVessel() {
 }
 
 void RocketMainThread::launchToOrbit(double _orbitAltitude) {
-    ThreadInterface* launchThread = new LaunchThread(spaceCenter, vessel, rocketData);
+    ThreadInterface* launchThread = new LaunchThread(connection ,spaceCenter, vessel, rocketData);
     if (launchThread == nullptr) {
         throw std::runtime_error("LaunchToOrbit: new error");
     }
@@ -47,7 +49,7 @@ void RocketMainThread::launchToOrbit(double _orbitAltitude) {
 }
 
 void RocketMainThread::hover() {
-    ThreadInterface* hoverThread = new HoverThread(spaceCenter, vessel, rocketData);
+    ThreadInterface* hoverThread = new HoverThread(connection, spaceCenter, vessel, rocketData);
     if (hoverThread == nullptr) {
         throw std::runtime_error("LaunchToOrbit: new error");
     }

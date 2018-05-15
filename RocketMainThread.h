@@ -7,6 +7,7 @@
 
 class RocketMainThread : public ThreadInterface {
 private:
+    krpc::Client&                           connection;
     krpc::services::SpaceCenter&            spaceCenter;
     krpc::services::SpaceCenter::Vessel     vessel;
     krpc::services::SpaceCenter::Flight     flight;
@@ -15,7 +16,7 @@ private:
     std::mutex                              activeThreadsMutex;
 
 public:
-    RocketMainThread(krpc::services::SpaceCenter& _sc);
+    RocketMainThread(krpc::Client _connection,krpc::services::SpaceCenter& _sc, krpc::services::SpaceCenter::Vessel _vessel);
     virtual ~RocketMainThread ();
 
     void setVessel (krpc::services::SpaceCenter::Vessel _vessel);

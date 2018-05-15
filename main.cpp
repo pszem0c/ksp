@@ -20,7 +20,7 @@ int main() {
         krpcService.set_paused(false);
       }
 
-      RocketMainThread puffin(sc);
+      RocketMainThread puffin(conn, sc, sc.active_vessel());
 
       DisplayThread::instance().startThread();
       puffin.startThread();

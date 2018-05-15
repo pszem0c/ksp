@@ -20,6 +20,7 @@ class LaunchThread : public ThreadInterface {
     };
 
 private:
+    krpc::Client&                       connection;
     krpc::services::SpaceCenter&        spaceCenter;
     krpc::services::SpaceCenter::Vessel vessel;
     krpc::services::SpaceCenter::Flight flight;
@@ -50,7 +51,7 @@ private:
     void circularizeBurn(krpc::services::SpaceCenter::Node& node);
 
 public:
-    LaunchThread (krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData);
+    LaunchThread (krpc::Client& _connection,krpc::services::SpaceCenter& _spaceCenter, krpc::services::SpaceCenter::Vessel _vessel, RocketData& _rocketData);
     virtual ~LaunchThread ();
 
 protected:

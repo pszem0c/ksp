@@ -13,7 +13,11 @@ SOURCES += \
     RocketData.cpp \
     RocketMainThread.cpp \
     ThreadInterface.cpp \
-    HoverThread.cpp
+    HoverThread.cpp \
+    regulatorpd.cpp \
+    regulatorpi.cpp \
+    regulatorpid.cpp \
+    signalgenerator.cpp
 
 HEADERS += \
     DisplayMsg.h \
@@ -23,4 +27,11 @@ HEADERS += \
     RocketMainThread.h \
     ThreadInterface.h \
     StreamQueue.h \
-    HoverThread.h
+    HoverThread.h \
+    regulator.h \
+    regulatorpd.h \
+    regulatorpi.h \
+    regulatorpid.h \
+    SISOSystem.h \
+    signalgenerator.h \
+    signalgeneratorinterface.h

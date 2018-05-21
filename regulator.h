@@ -13,6 +13,10 @@
  */
 class Regulator : public SISOSystem {
 private:
+    friend class boost::serialization::access;
+    template<typename Archive>
+    void serialize(Archive &ar, unsigned int const version) {}
+
 protected:
     std::shared_ptr<SignalGenerator> setPoint;
     std::vector<double> setPointVector;
